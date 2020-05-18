@@ -1,0 +1,46 @@
+#include <Wire.h>
+#include "RTClib.h"
+#include <LiquidCrystal.h>
+LiquidCrystal lcd(8, 9, 3, 5, 6, 7);
+RTC_DS1307 RTC;
+
+void setup () {
+Serial.begin(9600);
+Wire.begin();
+RTC.begin();
+lcd.begin(16, 2);
+
+pinMode(8,OUTPUT);
+lcd.setCursor(0, 0);
+lcd.print("sdfjhsadjf");
+delay(1000);
+if (! RTC.isrunning()) {
+Serial.println("RTC is NOT running!");
+// following line sets the RTC to the date & time this sketch was compiled
+RTC.adjust(DateTime(__DATE__, __TIME__));
+}
+}
+
+void loop () {
+DateTime now = RTC.now();
+lcd.setCursor(0, 0);
+lcd.print(now.day(), DEC);
+lcd.print('/');
+lcd.print(now.month(), DEC);
+lcd.print('/');
+lcd.print(now.year(), DEC);
+lcd.print(' ');
+lcd.setCursor(0, 1);
+if (now.hour()<10)
+lcd.print('0');
+lcd.print(now.hour(), DEC);
+lcd.print(':');
+if (now.minute()<10)
+lcd.print('0');
+lcd.print(now.minute(), DEC);
+lcd.print(':');
+if (now.second()<10)
+lcd.print('0');
+lcd.print(now.second(), DEC);
+delay(1000);
+}

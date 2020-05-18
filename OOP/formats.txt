@@ -1,0 +1,13 @@
+
+
+Y/W	1	Type		1.Sine,	2.Static,	3.Square,	4.Triangular	
+	2	Xoffset		-180	to	180
+	3	Yoffset		-288	to	288
+		Scale		-2000	to	2000
+		Speed		1000	to 	4000
+		Duty		100	to	990
+
+C,R,G,B
+
+file save format
+TypeC1!{VALUE}

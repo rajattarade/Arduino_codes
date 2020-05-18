@@ -1,0 +1,155 @@
+// Include librarys
+#include <SdFat.h>
+#include <SdFatUtil.h>  // define FreeRam()
+#include <Wire.h>  // i2C/1-wire library
+#include "RTClib.h"
+#include <LiquidCrystal.h>
+#include "FPS_GT511C3.h"
+#include "SoftwareSerial.h"
+
+
+FPS_GT511C3 fps(A0, 2);
+LiquidCrystal lcd(8, 9, 3, 5, 6, 7);
+RTC_DS1307 RTC;
+// store error strings in flash to save RAM
+#define error(s) sd.errorHalt_P(PSTR(s))
+DateTime arrival[2];  // tiem class for arrival
+DateTime time;
+
+int LastMonth=0;  // working hours till now in a month
+char DataRead=0;
+int succesRead = 0;
+// Declaration of the functions
+#define SD_CHIP_SELECT  4
+SdFat sd;
+ofstream logfile;
+
+
+int getID();  // read tag
+void errorBeep();  // error while reading (unknown tag)
+void StoreData();  // store data to microSD
+int rollNum = 300;
+
+// SETUP
+void setup() {
+    Serial.begin(9600);
+  lcd.begin(16, 2);
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("FPS Attendance");
+  lcd.setCursor(0, 1);
+  lcd.print(" System");
+  delay(2000);
+  lcd.clear();
+  if (!sd.begin(SD_CHIP_SELECT, SPI_HALF_SPEED)) sd.initErrorHalt();
+  delay(100);  
+  char name[] = "LOGGER00.CSV";
+  
+  for (uint8_t i = 0; i < 100; i++) {
+    name[6] = i/10 + '0';
+    name[7] = i%10 + '0';
+    if (sd.exists(name)) 
+    continue;
+    logfile.open(name);
+    break;
+  }
+  if (!logfile.is_open()) error("file.open");
+
+  cout << pstr("Logging to: ") << name << endl;
+  cout << pstr("Type any character to stop\n\n");
+  
+  // format header in buffer
+  obufstream bout(buf, sizeof(buf));
+
+  bout << pstr("millis");
+
+#if USE_DS1307
+  bout << pstr(",date,time");
+#endif  // USE_DS1307
+
+  for (uint8_t i = 0; i < SENSOR_COUNT; i++) {
+    bout << pstr(",sens") << int(i);
+  }
+  logfile << buf << endl;
+
+#if ECHO_TO_SERIAL
+  cout << buf << endl;
+#endif  // ECHO_TO_SERIAL
+  fps.Open();
+  fps.SetLED(true);
+  Wire.begin();  // start i2c library; if not, RTC will not work
+  RTC.begin();  // start RTC library
+ // RTC.adjust(DateTime(__DATE__, __TIME__));  // set RTC time to compiling time
+  Serial.println("Setup Ready");
+}
+
+// MAIN PROGRAM
+void loop() {
+    delay(1000);
+  succesRead = getID(); // read RFID tag
+  if(succesRead==1){ // if RFID read was succesful
+      Serial.println("Roll Number :");
+      Serial.println(rollNum);
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Roll Number");
+      lcd.print(rollNum);
+      StoreData();
+      while(1);
+    } 
+    else { // beeb an error; if new tag, then exit
+      Serial.println("Press the Finger");
+      DateTime time = RTC.now();
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print(time.day(), DEC);
+      lcd.print('/');
+      lcd.print(time.month(), DEC);
+      lcd.print('/');
+      lcd.print(time.year(), DEC);
+      lcd.print(' ');
+  if (time.hour()<10)
+  lcd.print('0');
+  lcd.print(time.hour(), DEC);
+  lcd.print(':');
+  if (time.minute()<10)
+  lcd.print('0');
+  lcd.print(time.minute(), DEC);
+  lcd.setCursor(0, 1);
+  lcd.println("Press the Finger");
+     }
+     delay(100);
+     succesRead=0;
+  }  
+
+int getID() {
+  Serial.println("Came to getID");
+  if (fps.IsPressFinger())
+  {
+    fps.CaptureFinger(false);
+    rollNum = fps.Identify1_N();
+       if (rollNum<200)
+       { //If a new PICC placed to RFID reader continue
+        Serial.println("Know Finger Found");
+        return 1;
+       }
+       else
+       {
+        lcd.clear();
+        lcd.setCursor(0,0);
+        lcd.print("Student not");
+        lcd.setCursor(0,1);
+        lcd.print("Found");
+        delay(2000);
+        }
+  return 0;
+  } 
+}
+
+void StoreData(){ // calculate and store data to SD card
+ 
+  Serial.println("Came to Storage");
+  Serial.println("Saved");
+delay(1000);
+}
+
